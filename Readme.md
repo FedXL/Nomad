@@ -18,6 +18,6 @@ The main logic for interacting with the CRM system is implemented in the `crm` a
 
 Всё это написано довольно грубо, времени на рефакторинг не было. Но зато могу утверждать, что хуже не будет.
 
-
+[![wakatime](https://wakatime.com/badge/github/FedXL/base-template-watsappBot.svg)](https://wakatime.com/badge/github/FedXL/base-template-watsappBot)
 
 
