@@ -46,3 +46,5 @@ class AddressAdmin(admin.ModelAdmin):
     list_display = ('id', 'city',
                     'street', 'dom', 'kv', 'korp',
                     'floor', 'entrance', 'doorcode', 'client_uuid')
+
+

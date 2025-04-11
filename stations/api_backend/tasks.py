@@ -10,8 +10,8 @@ def create_user_in_crm(phone_number, username):
     if result:
         data = {'list': [result.get('client')]}
         group_chain = chain(
-            parse_file.s(data),  # Возвращает какой-то результат
-            signature("crm.tasks.add_exist_client", kwargs={"phone": phone_number})  # Передаём phone через kwargs
+            parse_file.s(data),
+            signature("crm.tasks.add_exist_client", kwargs={"phone": phone_number})
         )
         group_chain.apply_async()
     return 'completed'

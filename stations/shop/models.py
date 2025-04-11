@@ -73,6 +73,9 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2,verbose_name='Стоимость в тенге')
     quantity = models.PositiveIntegerField(default=1,verbose_name='Количество')
 
+    order_uuid = models.CharField(max_length=255, verbose_name='ID в CRM', null=True, blank=True)
+
+
     @property
     def total_price(self):
         return self.quantity * self.price
@@ -85,5 +88,6 @@ class OrderItem(models.Model):
             "product": self.product_name,
             "quantity": self.quantity,
             "price": self.price,
-            "total_price": self.total_price
+            "total_price": self.total_price,
+            "crm_id": self.order_uuid
         }

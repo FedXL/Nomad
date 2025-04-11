@@ -45,7 +45,8 @@ class CollectClientData(APIView):
         session_v = request.data.get('session')
         username = request.data.get('username')
 
-        if not username and not phone:
+        if (not username and not
+        phone):
             username = 'Tester!'
             phone = '7998 999 99 99'
 

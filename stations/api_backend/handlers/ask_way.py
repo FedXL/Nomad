@@ -212,8 +212,6 @@ def collect_data_before_order(the_way,
     what_next_details = содержимое
     """
 
-
-
     my_logger.info(f"START collect_data_before_order: {the_way}")
     result = {}
     client = Client.objects.filter(phone=user_phone).first()
