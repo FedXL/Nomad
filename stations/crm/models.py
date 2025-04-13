@@ -165,7 +165,7 @@ class PhoneCRM(models.Model):
     "last_name": ""
   }
     """
-    client_watsapp = models.OneToOneField(Client, on_delete=models.CASCADE, related_name='phone_crm', null=True, blank=True)
+    client_watsapp = models.OneToOneField(Client, on_delete=models.CASCADE, related_name='phone_crm_w', null=True, blank=True)
     client = models.ForeignKey(ClientCRM, related_name='phones_crm', on_delete=models.CASCADE, null=True, blank=True)
     phone = models.CharField(max_length=30,unique=True)
     comment = models.TextField(blank=True, null=True)

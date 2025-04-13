@@ -5,7 +5,7 @@ from clients.models import Client
 from shop.models import Order, OrderItem
 
 
-def create_order(phone:str,my_logger) -> bool:
+def create_order(phone:str,my_logger) -> tuple:
     """
     Create order for client with phone number
     """
@@ -15,23 +15,32 @@ def create_order(phone:str,my_logger) -> bool:
             my_logger.info(f"Try to find client by phone: {phone}")
             client = Client.objects.filter(phone=phone).first()
             if not client:
-                return False
+                return False, None
             my_logger.info(f"Client found: {client}")
             my_logger.info(f"Try to find cart for client: {client}")
             cart = client.cart_related
+
             if not cart:
                 my_logger.info(f"Cart not found")
-                return False
+                return False, None
             my_logger.info(f"Cart found: {cart}")
             my_logger.info(f"Try to get items")
             items = cart.cart_items.all()
             if not items:
                 my_logger.info(f"Items not found")
-                return False
+                return False, None
             my_logger.info(f"Items found: {items}")
             my_logger.info(f"Try to create order")
-            order = Order.objects.create(client=client,
-                                         time_spot=cart.spot)
+
+            date_d,time_start,time_end = cart.extract_time_spot()
+
+            order = Order.objects.create(
+                                         client=client,
+                                         payment_choice=cart.payment_choice,
+                                         delivery_date=date_d,
+                                         time_start=time_start,
+                                         time_end=time_end
+                                         )
             my_logger.info(f"Order created: {order}")
             for item in items:
                 my_logger.info(f"Try to create order item: {item}")
@@ -46,10 +55,10 @@ def create_order(phone:str,my_logger) -> bool:
             items = cart.cart_items.all()
             items.delete()
             my_logger.info(f"Cart deleted")
-        return True
+        return True , order.id
     except Exception as e:
         my_logger.info(f"Error in create_order: {e}")
-        return False
+        return False , None
 
 
 def create_text_success(language, is_success):

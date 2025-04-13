@@ -4,13 +4,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from api_backend.handlers.ask_way import collect_data_before_order
-from api_backend.handlers.collect_data.collect_cart_quantity import collect_product_quantity_way
 from api_backend.handlers.create_order import create_order, create_text_success
 from api_backend.models import MenuBlock, InfoBlock, Variables, ProductBlock
 from api_backend.replies import R, replies_text
 from api_backend.utils import infoblock_serializer, client_cart_serializer, create_product_block_data
 from clients.models import Client
-from crm.tasks import clean_phone
+from crm.tasks import clean_phone, order_send_to_crm_task
 from shop.models import Cart
 from api_backend.tasks import create_user_in_crm
 
@@ -209,7 +208,10 @@ class SummonBlockApiView(APIView):
 
         elif action =='create_order':
             """создаем заказ"""
-            is_created = create_order(user_phone, self.logger)
+            self.logger.info('TRY TO CREATE Creating order')
+            is_created, order_id = create_order(user_phone, self.logger)
+            if order_id:
+                order_send_to_crm_task.delay(order_id)
             self.logger.info(f'Creating order {is_created}')
             result_data = create_text_success(language, is_created)
             return Response(result_data, status=200)
@@ -265,9 +267,16 @@ class SummonBlockApiView(APIView):
                 self.logger.error(f"parsing_variable not found")
                 pass
             try:
-                assert the_way in ['ask_address','catch_address','catch_time',
-                            'ask_about_container','ask_about_delivery',
-                            'ask_about_payment','product_quantity','catch_product_quantity'], 'The way not found'
+                assert the_way in ['ask_address',
+                                   'catch_address',
+                                   'ask_payment_choice',
+                                   'catch_payment_choice',
+                                   'catch_time',
+                            'ask_about_container',
+                            'ask_about_delivery',
+                            'ask_about_payment',
+                            'product_quantity',
+                            'catch_product_quantity'], 'The way not found'
             except:
                 return Response({'message': 'The way not found!'}, status=404)
 
@@ -306,15 +315,12 @@ class SummonBlockApiView(APIView):
                 text = prefix + info
                 text = text.replace(' ', '%20')
                 link = f"https://wa.me/{operator_phone}?text={text}"
-
             else:
                 link = f"https://wa.me/{operator_phone}"
-
             self.logger.warning(f"infoblock name {infoblock_name}")
             infoblock_block, buttons = infoblock_serializer(infoblock_name,
                                                             language,
                                                             for_operator_link=True)
-
             result_data['infoblock'] = {
                 'link': link,
                 'buttons': buttons,
@@ -331,6 +337,7 @@ class SummonBlockApiView(APIView):
                              'action was':action,
                              'what_next': body},
                             status=404)
+
 
 class IsDead(APIView):
     def get(self, request):

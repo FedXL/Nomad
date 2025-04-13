@@ -3,7 +3,7 @@ from api_backend.models import ProductBlock
 from api_backend.replies import R, replies_text, SupportLogic, WATER_19L_BOTTLE
 from api_backend.utils import create_product_block_data
 from clients.models import Client
-from django.utils.timezone import now
+from django.utils.timezone import now,localtime
 from datetime import timedelta
 from crm.tasks import add_new_address_task
 from shop.models import Cart, CartItem
@@ -114,6 +114,8 @@ def get_delivery_slots(language):
     ]
   }
 ]
+
+
     """
     buttons = [
         {
@@ -121,15 +123,15 @@ def get_delivery_slots(language):
             "rows": [],
         }
     ]
-    tomorrow_after = now()
+    tomorrow_after = localtime(now())
     rows = []
-
+    print(f"tomorrow_after: {tomorrow_after}")
     if tomorrow_after.hour <= 13:
         rows.append(
             {
                 "title": replies_text(R.AskBlock.TODAY_15_20,language),
-                "value": "datacollector|catch_time|today_15_20",
-                "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 20:00"}
+                "value": "datacollector|catch_time|today_15_18",
+                "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 18:00"}
         )
         tomorrow_after = tomorrow_after + timedelta(days=1)
 
@@ -143,8 +145,8 @@ def get_delivery_slots(language):
     rows.append(
         {
             "title": replies_text(R.AskBlock.TOMORROW_15_20, language),
-            "value": "datacollector|catch_time|tomorrow_15_20",
-            "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 20:00"
+            "value": "datacollector|catch_time|tomorrow_15_18",
+            "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 18:00"
         }
     )
     tomorrow_after = tomorrow_after + timedelta(days=1)
@@ -159,8 +161,8 @@ def get_delivery_slots(language):
     rows.append(
         {
             "title": replies_text(R.AskBlock.AFTER_TOMORROW_15_20, language),
-            "value": "datacollector|catch_time|after_tomorrow_15_20",
-            "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 20:00"
+            "value": "datacollector|catch_time|after_tomorrow_15_18",
+            "description": f"{tomorrow_after.day}.{tomorrow_after.month}.{tomorrow_after.year} с 15:00 до 18:00"
         }
     )
     buttons[0]['rows'] = rows
@@ -177,7 +179,6 @@ def create_time_block(language):
         "list_title": replies_text(R.AskBlock.SPOT_TITLE, language),
         "section_title": replies_text(R.AskBlock.SPOT_SECTION, language)
     }
-
     buttons = get_delivery_slots(language)
     menu['menu_block'] = menu_block
     menu['menu_buttons'] = buttons
@@ -196,6 +197,29 @@ def how_many_bootle_you_need(cart:Cart):
                 raise ValueError("Хрень какая то иди разбирайся в how_many_bootle_you_need")
     return False
 
+
+def time_block_next_step(language,result):
+    result['menu'] = create_time_block(language)
+    result['what_next'] = 'create_menu'
+    return result
+
+
+def ask_payment_choice_block(language):
+    result  = {}
+    infoblock = {
+        "header": replies_text(R.Order.ASK_PAYMENT_HEADER, language),
+        "body": replies_text(R.Order.ASK_PAYMENT_BODY, language),
+        "footer": replies_text(R.Order.ASK_PAYMENT_FOOTER, language),
+    }
+    infobuttons = [
+            {"title": replies_text(R.Order.PAYMENT_TYPE_CASH, language),"value": "datacollector|catch_payment_choice|cash"},
+            {"title": replies_text(R.Order.PAYMENT_TYPE_TERMINAL, language),"value": "datacollector|catch_payment_choice|terminal"},
+            {"title": replies_text(R.Order.PAYMENT_TYPE_DEPOSIT, language),"value": "datacollector|catch_payment_choice|deposit"},
+        ]
+    result['what_next'] = 'create_infoblock'
+    result['infoblock'] = {"infoblock_block": infoblock,
+                           "buttons": infobuttons}
+    return result
 
 def collect_data_before_order(the_way,
                               language,
@@ -217,7 +241,6 @@ def collect_data_before_order(the_way,
     client = Client.objects.filter(phone=user_phone).first()
     if not client:
         return {"error": "Клиент не найден"}
-
     match the_way:
         case "ask_address":
             """Спросить адрес"""
@@ -228,6 +251,7 @@ def collect_data_before_order(the_way,
             else:
                 my_logger.info(f"Спросить адрес без кнопок {user_phone}")
                 result = no_buttons_address_block(language)
+
         case "catch_address":
             my_logger.info(f'start CATCH ADDRESS {what_next_details}')
             """Поймать адрес -> опрос тайм слота"""
@@ -241,8 +265,9 @@ def collect_data_before_order(the_way,
                     client.save()
                 elif the_way_2 == 'address_confirmed':
                     my_logger.info('CATCH ADDRESS: address_confirmed')
-                    result['menu'] = create_time_block(language)
-                    result['what_next'] = 'create_menu'
+                    # result = time_block_next_step(language, result)
+                    result = ask_payment_choice_block(language)
+
                 else:
                     """новый адрес"""
                     my_logger.info(f'CATCH ADDRESS: {what_next_details}')
@@ -252,23 +277,30 @@ def collect_data_before_order(the_way,
                     result['what_next'] = 'create_menu'
                     add_new_address_task.delay(phone = user_phone,
                                                address_string = what_next_details)
-
             else:
                 raise ValueError("Что то пошло не так в catch_address")
 
         case "address_confirmed":
             """у нас подтвержденный адрес -> опрос тайм слота"""
             my_logger.info("Подтвержденный адрес затем тайм слот")
-            result['menu'] = create_time_block(language)
-            result['what_next'] = 'create_menu'
+            # result = time_block_next_step(language, result)
+            result = ask_payment_choice_block(language)
 
-
-        # FIXME: 1. Добавить PAYMENT CHOICE
-        case "catch_payment_choice":
-            """Выбор способа оплаты"""
+        case "ask_payment_choice":
+            """Спросить способ оплаты"""
             my_logger.info('start PAYMENT CHOICE')
-            result['what_next'] = 'create_menu'
-            result['menu'] = {}
+            result_block = ask_payment_choice_block(language)
+            result['what_next'] = 'create_infoblock'
+            result['infoblock'] = {"infoblock_block": result_block}
+
+        case "catch_payment_choice":
+            """Поймать выбор и че сделать """
+            my_logger.info('start PAYMENT CHOICE')
+            payment_choice = what_next_details
+            cart = client.cart_related
+            cart.payment_type = payment_choice
+            cart.save()
+            result = time_block_next_step(language, result)
 
         case "catch_time":
             my_logger.info('start CATCH TIME')
@@ -277,7 +309,6 @@ def collect_data_before_order(the_way,
             cart = client.cart_related
             cart.spot = time
             cart.save()
-
             result['what_next'] = 'create_infoblock'
             how_many_19L_bootle = how_many_bootle_you_need(cart=cart)
             my_logger.info(f"how_many_19L_bootle: {how_many_19L_bootle}")
@@ -289,12 +320,11 @@ def collect_data_before_order(the_way,
                     "header": replies_text(R.AskBlock.CONTAINER_HEADER, language),
                     "body": body,
                     "footer": replies_text(R.AskBlock.CONTAINER_FOOTER, language),
-
                 }
                 result['infoblock'] = {"infoblock_block": infoblock_data,
                                        "buttons": [
                         {
-                            "title": replies_text(R.Navigate.YES, language),
+                            "title": replies_text(R.Navigate.YES,language),
                             "value": "create_order"
                         },
                         {

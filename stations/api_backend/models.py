@@ -1,7 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-
 class Block(models.Model):
     header_rus = models.CharField(max_length=59, verbose_name="Заголовок на русском", null=True, blank=True)
     header_kaz = models.CharField(max_length=59, verbose_name="Заголовок на казахском", null=True, blank=True)
@@ -69,6 +68,7 @@ class MenuBlock(Block):
                 'list_title': self.list_title_kaz,
                 'section_title': self.section_title_kaz
             }
+
         elif language == 'rus':
             return {
                 'header': self.header_rus,
@@ -77,7 +77,6 @@ class MenuBlock(Block):
                 'list_title': self.list_title_rus,
                 'section_title': self.section_title_rus
             }
-
 
 
 class InfoBlock(Block):

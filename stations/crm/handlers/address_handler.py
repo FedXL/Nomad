@@ -86,9 +86,6 @@ def parse_the_address_string(address_str):
         }
     """
     address_logger.info(f"address_str: {address_str}")
-
-
-
     address_ru = smart_translate(address_str)
     address_logger.info(f"address_ru: {address_ru}")
     parsed = parse_address_openstreetmap(address_ru)
