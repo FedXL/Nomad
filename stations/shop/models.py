@@ -1,6 +1,5 @@
 from django.db import models
 from django.utils import timezone
-
 from clients.models import Client
 from shop.utils import cart_buttons_generator
 
@@ -77,6 +76,8 @@ class CartItem(models.Model):
         return f"{self.quantity} x {self.product.product_name}"
 
     def to_dict(self):
+        uuid = self.product.uuid if hasattr(self.product, 'uuid') else None
+
         return {
             "product": self.product.product_name,
             "product_header_kaz": self.product.header_kaz,
@@ -84,6 +85,7 @@ class CartItem(models.Model):
             "quantity": self.quantity,
             "price": self.product.price,
             "total_price": self.total_price,
+            "crm_id": uuid,
         }
 
 class Order(models.Model):
@@ -125,6 +127,14 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
+
+    def save(self, *args, **kwargs):
+        product_uuid = getattr(self.product, 'uuid', None)
+        if not product_uuid:
+            print('no')
+        else:
+            self.item_uuid = product_uuid
+        super().save(*args, **kwargs)
 
     def to_dict(self):
         return {

@@ -145,6 +145,7 @@ class SummonBlockApiView(APIView):
             return Response({'message': 'Action not found!'}, status=404)
         if not user_phone or user_phone == 'None':
             user_phone = '79989999999'
+
         if "create_menu" in action:
             """основная фишка что в меню будет список из кнопок"""
             self.logger.info(f'Creating menu {action}')

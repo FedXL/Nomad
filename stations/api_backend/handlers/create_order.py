@@ -1,10 +1,7 @@
 from django.db import transaction
-
 from api_backend.replies import replies_text, R, SupportLogic
 from clients.models import Client
 from shop.models import Order, OrderItem
-
-
 def create_order(phone:str,my_logger) -> tuple:
     """
     Create order for client with phone number
@@ -31,15 +28,14 @@ def create_order(phone:str,my_logger) -> tuple:
                 return False, None
             my_logger.info(f"Items found: {items}")
             my_logger.info(f"Try to create order")
-
             date_d,time_start,time_end = cart.extract_time_spot()
-
             order = Order.objects.create(
                                          client=client,
                                          payment_choice=cart.payment_choice,
                                          delivery_date=date_d,
                                          time_start=time_start,
-                                         time_end=time_end
+                                         time_end=time_end,
+                                        status="pending",
                                          )
             my_logger.info(f"Order created: {order}")
             for item in items:
@@ -48,7 +44,9 @@ def create_order(phone:str,my_logger) -> tuple:
                                                       product=item.product,
                                                       product_name=item.product.product_name,
                                                       quantity=item.quantity,
-                                                      price=item.product.price)
+                                                      price=item.product.price,
+                                                      item_uuid=item.item_uuid,
+                                                      )
                 my_logger.info(f"Order item created: {order_item}")
         with transaction.atomic():
             my_logger.info(f"Try to delete cart")
@@ -60,12 +58,10 @@ def create_order(phone:str,my_logger) -> tuple:
         my_logger.info(f"Error in create_order: {e}")
         return False , None
 
-
 def create_text_success(language, is_success):
     """Отчет о заказе в виде инфоблока"""
     result  = {}
     if is_success:
-
         data = {
             "header": replies_text(R.Order.SUCCESS_HEADER, language),
             "body": replies_text(R.Order.SUCCESS_BODY,language=language),
@@ -77,7 +73,6 @@ def create_text_success(language, is_success):
             "body": replies_text(R.Order.FAIL_BODY,language=language),
             "footer": replies_text(R.Order.FAIL_FOOTER,language=language)
         }
-
     result['infoblock'] = {"infoblock_block": data,
                            "buttons": [
                                {
@@ -85,15 +80,12 @@ def create_text_success(language, is_success):
                                    "value": "create_special_menu_cart"
                                }
                            ]}
-
     result['support_logic'] = SupportLogic.WITH_BUTTONS
     result['what_next'] = 'button_message'
     return result
 
-
 def create_text_ask_about_payment(language):
     result = {}
-
     data = {
         "header": replies_text(R.Order.ASK_PAYMENT_HEADER, language),
         "body": replies_text(R.Order.ASK_PAYMENT_BODY, language),

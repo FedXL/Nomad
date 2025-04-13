@@ -36,7 +36,7 @@ payload = {
 """
 
 
-def order_example(payload):
+def send_order(payload):
     url = "https://waterapp.me/cab/api/orders"
     headers = {
         "Authorization": f"Bearer {TOKEN}",
@@ -56,14 +56,15 @@ def create_order_model(order_id):
     items = order.order_items.all()
     items_list = [item.to_dict() for item in order.order_items.all() if item.item_uuid]
     client = order.client
+    address_uuid = client.last_address_uuid
     phone_crm = client.phone_crm_w
     crm_client = phone_crm.client
-    crm_uuid = crm_client.uuid
+    crm_uuid = crm_client.client_uuid
     if items_list:
         payload = {
         "order": {
             "client_id": crm_uuid,
-            "address_id": order.address_id,
+            "address_id": address_uuid,
             "pay_type_id": order.payment_choice,
             "items": items_list,
             "delivery_type": "delivery",

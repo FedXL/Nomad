@@ -26,3 +26,6 @@ staticfiles/
 .dmypy.json
 dmypy.json
 .pyre/
+test_2.py
+testtt.py
+try_2.py

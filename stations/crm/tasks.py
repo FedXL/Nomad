@@ -408,9 +408,11 @@ def add_new_address_task(phone, address_string):
     result = add_new_address(phone, address_string)
     return result
 
+sellery_logger = logging.getLogger('celery')
 
 
 @shared_task
 def order_send_to_crm_task(order_id:int):
     payload=create_order_model(order_id)
+    sellery_logger.info(payload)
     return payload
