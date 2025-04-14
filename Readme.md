@@ -20,4 +20,5 @@ The main logic for interacting with the CRM system is implemented in the `crm` a
 
 [![wakatime](https://wakatime.com/badge/github/FedXL/base-template-watsappBot.svg)](https://wakatime.com/badge/github/FedXL/base-template-watsappBot)
 
+https://wakatime.com/@FedorKuruts/projects/dyjopwhhof?start=2025-04-09
 
