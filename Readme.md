@@ -22,3 +22,5 @@ The main logic for interacting with the CRM system is implemented in the `crm` a
 
 https://wakatime.com/@FedorKuruts/projects/dyjopwhhof?start=2025-04-09
 
+https://drive.google.com/drive/folders/1HKl-Wk7JInNpLXE2m7bGX4H7c1dhulib?hl=ru
+
