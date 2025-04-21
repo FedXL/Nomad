@@ -6,7 +6,7 @@ from clients.models import Client
 from django.utils.timezone import now,localtime
 from datetime import timedelta
 from crm.tasks import add_new_address_task
-from shop.models import Cart, CartItem
+from shop.models import Cart, CartItem, Order
 
 """
 шпаргалка по меню 
@@ -349,6 +349,88 @@ def collect_data_before_order(the_way,
                                            {"header": replies_text(R.Quantity.COLLECT_QUANTITY, language=language)}}
                 result['support_logic'] = SupportLogic.NO_BUTTONS
 
+        case "order_handler":
+            my_logger.info(f"start ask about order handler")
+            order_id = parsing_variable
+            order = Order.objects.filter(id=order_id).first()
+            order_items = order.order_items.all()
+            body_text = ""
+
+            counter = 0
+            for item in order_items:
+                if item.product:
+                    counter+=1
+                    if language == 'rus':
+                        product_name = item.product.header_rus
+                    else:
+                        product_name = item.product.header_kaz
+                    body_text += f"{product_name} {item.quantity} шт. {item.price} ₸\n"
+            total_price = order.order_price
+            body_text += f"Итого: {total_price} ₸"
+            info_block = {
+                'header': replies_text(R.OrderHandler.YOUR_ORDER_HEADER,language),
+                'body': body_text,
+                'footer': replies_text(R.OrderHandler.YOUR_ORDER_FOOTER,language=language),
+            }
+
+            buttons = []
+            if counter > 0:
+                buttons.append(
+                    {
+                        "title": replies_text(R.OrderHandler.REPEAT_ORDER_BUTTON, language=language),
+                        "value": f"datacollector|catch_order_handler|{order_id}"
+                    }
+                )
+            buttons.append(
+                {
+                    "title": "OK",
+                    "value": "create_special_menu_orders"
+                }
+            )
+
+            result = {
+                'infoblock': {
+                    'infoblock_block': info_block,
+                    'buttons': buttons
+                },
+                'support_logic': SupportLogic.WITH_BUTTONS,
+                'what_next': f'create_infoblock'
+            }
+            return result
+
+        case "catch_order_handler":
+            my_logger.info(f'Start CATCH ORDER REPEATER')
+            order_id = parsing_variable
+            order = Order.objects.filter(id=order_id).first()
+            order_items = order.order_items.all()
+            client = order.client
+            cart = client.cart_related
+            cart_items = cart.cart_items.all()
+            cart_items.delete()
+            for order_item in order_items:
+                if order_item.product:
+                    CartItem.objects.create(
+                        product=order_item.product,
+                        cart=cart,
+                        quantity=order_item.quantity
+                        )
+            return {
+                "what_next": "create_infoblock",
+                "infoblock": {
+                    "infoblock_block": {
+                        "header": replies_text(R.OrderHandler.ADD_TO_CART_HEADER, language),
+                        "body": replies_text(R.OrderHandler.ADD_TO_CART_BODY,language),
+                        "footer": replies_text(R.OrderHandler.ADD_TO_CART_FOOTER,language=language),
+                    },
+                    "buttons": [
+                        {
+                            "title": replies_text(R.Navigate.COMEBACK, language),
+                            "value": "create_special_menu_cart"
+                        }
+                    ]
+                },
+            }
+
         case "catch_product_quantity":
             my_logger.info(f'start CATCH PRODUCT QUANTITY {what_next_details}{parsing_variable}')
             if what_next_details:
@@ -378,6 +460,7 @@ def collect_data_before_order(the_way,
 
                 cart = client.cart_related
                 product_item = ProductBlock.objects.filter(product_name=product_name).first()
+
                 if not product_item:
                     my_logger.error(f'Product not found {product_name}')
                     return {'error': 'Product not found'}

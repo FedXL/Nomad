@@ -45,7 +45,6 @@ def create_order(phone:str,my_logger) -> tuple:
                                                       product_name=item.product.product_name,
                                                       quantity=item.quantity,
                                                       price=item.product.price,
-                                                      item_uuid=item.item_uuid,
                                                       )
                 my_logger.info(f"Order item created: {order_item}")
         with transaction.atomic():

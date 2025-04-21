@@ -34,7 +34,7 @@ class InfoBlockAdmin(admin.ModelAdmin):
 
 @admin.register(ProductBlock)
 class ProductBlockAdmin(admin.ModelAdmin):
-    list_display = ('id', 'product_name', 'header_rus', 'header_kaz')
+    list_display = ('id','uuid','product_name', 'header_rus', 'header_kaz')
 
 @admin.register(ButtonMenu)
 class ButtonMenuAdmin(admin.ModelAdmin):

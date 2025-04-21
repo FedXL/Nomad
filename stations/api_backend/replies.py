@@ -43,6 +43,26 @@ class R:
         PAYMENT_TYPE_TERMINAL = "payment_type_terminal"
         PAYMENT_TYPE_DEPOSIT = "payment_type_deposit"
 
+    class OrderHandler:
+        ADD_TO_CART_HEADER="add_to_cart_header"
+        ADD_TO_CART_BODY="add_to_cart_body"
+        ADD_TO_CART_FOOTER="add_to_cart_footer"
+
+        YOUR_ORDER_HEADER = "your_order_header"
+        YOUR_ORDER_BODY = "your_order_body"
+        YOUR_ORDER_FOOTER = "your_order_footer"
+
+        REPEAT_ORDER_BUTTON = "repeat_order_button"
+    class OrdersMenu:
+
+        HEADER = "menu_orders_header"
+        BODY = "menu_orders_body"
+        FOOTER = "menu_orders_footer"
+        LIST_TITLE = 'menu_orders_list_title'
+        SECTION_TITLE = 'menu_orders_section_title'
+
+
+
 
     class Variables:
         QUANTITY = "quantity"

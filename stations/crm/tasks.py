@@ -7,7 +7,7 @@ from django.db import transaction
 from clients.models import Client
 from crm.handlers.address_handler import parse_the_address_string, extract_address_from_string, \
     send_new_address_in_CRM
-from crm.handlers.orders_handler import create_order_model
+from crm.handlers.orders_handler import create_order_model, send_order
 from crm.models import PhoneCRM, ClientCRM, Address
 
 my_task_logger = logging.getLogger(__name__)
@@ -415,4 +415,7 @@ sellery_logger = logging.getLogger('celery')
 def order_send_to_crm_task(order_id:int):
     payload=create_order_model(order_id)
     sellery_logger.info(payload)
+    result,data = send_order(payload)
+    sellery_logger.warning(f'Order send to CRM: {result}')
+    sellery_logger.warning(f'Order send to CRM: {data}')
     return payload

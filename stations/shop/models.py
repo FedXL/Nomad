@@ -77,7 +77,6 @@ class CartItem(models.Model):
 
     def to_dict(self):
         uuid = self.product.uuid if hasattr(self.product, 'uuid') else None
-
         return {
             "product": self.product.product_name,
             "product_header_kaz": self.product.header_kaz,
@@ -89,7 +88,7 @@ class CartItem(models.Model):
         }
 
 class Order(models.Model):
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="orders")
     status = models.CharField(max_length=50, choices=[("pending", "pending"),
                                                       ("completed", "completed"),
                                                       ("canceled", "canceled")],
@@ -107,8 +106,14 @@ class Order(models.Model):
     )
 
     @property
-    def total_price(self):
-        return sum(item.total_price for item in self.cart.cart_items.all())
+    def order_price(self):
+        itmems = self.order_items.all()
+        total = sum(item.total_price for item in itmems)
+        return total
+
+    def get_status(self,language):
+        return self.status
+
 
     def __str__(self):
         return f"Order {self.id} - {self.client.username} - {self.status}"
@@ -124,10 +129,8 @@ class OrderItem(models.Model):
     @property
     def total_price(self):
         return self.quantity * self.price
-
     def __str__(self):
         return f"{self.quantity} x {self.product_name}"
-
     def save(self, *args, **kwargs):
         product_uuid = getattr(self.product, 'uuid', None)
         if not product_uuid:
@@ -135,7 +138,6 @@ class OrderItem(models.Model):
         else:
             self.item_uuid = product_uuid
         super().save(*args, **kwargs)
-
     def to_dict(self):
         return {
             "product": self.product_name,
@@ -144,14 +146,13 @@ class OrderItem(models.Model):
             "total_price": self.total_price,
             "crm_id": self.item_uuid,
         }
-
     def to_crm_dict(self):
         if self.item_uuid:
             return {
                 "item_id": self.item_uuid,
                 "art": "",
                 "title": self.product_name,
-                "price": self.price * 100,
+                "price": int(self.price * 100),
                 "quantity": self.quantity
             }
         else:

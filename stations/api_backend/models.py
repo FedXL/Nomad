@@ -135,7 +135,7 @@ class ButtonMenu(models.Model):
     description_kaz = models.CharField(max_length=70, verbose_name="Описание на казахском",null=True, blank=True)
     button_number = models.IntegerField(verbose_name="Порядковый номер", default=0)
 
-
+    special = models.CharField(max_length=255,null=True, blank=True, verbose_name='Нетиповое действие')
     info_block = models.OneToOneField(InfoBlock, on_delete=models.CASCADE, related_name='info_button_reverse', verbose_name="При нажатии переход в этот инфоблок",null=True, blank=True)
     menu_block = models.ForeignKey(MenuBlock, on_delete=models.CASCADE,
                                    related_name='menu_button_reverse',
@@ -146,9 +146,10 @@ class ButtonMenu(models.Model):
                                       verbose_name="При нажатии переход в этот продукт",
                                       null=True, blank=True)
 
+
     def clean(self):
         super().clean()
-        result_list = [item for item in [self.info_block, self.menu_block, self.product_block] if item]
+        result_list = [item for item in [self.info_block, self.menu_block, self.product_block,self.special] if item]
         if len(result_list) == 0:
             raise ValidationError("Кнопка должна иметь хотя бы один переход, а то зачем кнопка? Куда ведет?")
         if len(result_list) > 1:
@@ -166,6 +167,8 @@ class ButtonMenu(models.Model):
             return f"create_infoblock_{self.info_block.name}"
         elif self.product_block:
             return f"create_productblock_{self.product_block.product_name}"
+        elif self.special:
+            return f"{self.special}"
         else:
             return f"create_menu_{self.menu_block.name}"
 
@@ -204,6 +207,7 @@ class Variables(models.Model):
             ('button', 'Кнопка')
         ]
     )
+
 
     class Meta:
         verbose_name = "Остальные реплики"

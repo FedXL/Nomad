@@ -13,7 +13,7 @@ API_KEY_GOOGLE = os.getenv('GOOGLE_TOKEN')
 HOME_HOST = os.getenv('HOME_HOST')
 
 if VERSION == 'deploy':
-    DEBUG = True
+    DEBUG = False
     ALLOWED_HOSTS = [HOME_HOST,f'www.{HOME_HOST}']
     CSRF_TRUSTED_ORIGINS = [f'https://{HOME_HOST}', f'https://{HOME_HOST}']
     HOST_PREFIX = f'https://{HOME_HOST}'

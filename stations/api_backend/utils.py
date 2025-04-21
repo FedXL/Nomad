@@ -71,7 +71,6 @@ def create_product_block_data(action,
         return False, 'Client not found!'
 
     cart_dict = client_cart_serializer(client)
-
     product_block_result = {}
     product_name = result_data.get('product_name', None)
 

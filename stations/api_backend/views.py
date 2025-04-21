@@ -1,18 +1,18 @@
 import logging
-from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from api_backend.handlers.ask_way import collect_data_before_order
 from api_backend.handlers.create_order import create_order, create_text_success
+from api_backend.handlers.crm_handlers.client_handler import create_user
 from api_backend.models import MenuBlock, InfoBlock, Variables, ProductBlock
 from api_backend.replies import R, replies_text
+from api_backend.tasks import create_user_in_crm
 from api_backend.utils import infoblock_serializer, client_cart_serializer, create_product_block_data
 from clients.models import Client
 from crm.tasks import clean_phone, order_send_to_crm_task
 from shop.models import Cart
-from api_backend.tasks import create_user_in_crm
-
+from shop.utils import orders_menu_buttons_generator
 
 views_logger = logging.getLogger('Views| api_backend')
 views_logger.setLevel(logging.INFO)
@@ -48,11 +48,9 @@ class CollectClientData(APIView):
         phone):
             username = 'Tester!'
             phone = '7998 999 99 99'
-
         if username == 'None' and phone == 'None':
             username = 'Tester!'
             phone = '7998 999 99 99'
-
         try:
             phone = clean_phone(phone)
             client, created = Client.objects.update_or_create(
@@ -63,7 +61,6 @@ class CollectClientData(APIView):
                     }
                 )
 
-
             views_logger.warning(f'user : {client}, user updated created: {created}')
         except:
             views_logger.error('Error creating/updating client')
@@ -72,6 +69,7 @@ class CollectClientData(APIView):
             views_logger.info('New client! Creating cart...')
             cart = Cart.objects.create(client=client)
             views_logger.info(f'Created cart: {cart}')
+            create_user_in_crm.delay(phone, username)
         else:
             views_logger.info('Client already exists! Checking cart...')
             cart = Cart.objects.filter(client=client).first()
@@ -107,6 +105,8 @@ def menu_serializer(menu, language,my_logger):
                 "value": "to_language_choice",
                 "description": "Назад к выбору языка"
             })
+
+
         elif language == 'kaz':
             rows.append({
                 "title": "Себет",
@@ -120,8 +120,8 @@ def menu_serializer(menu, language,my_logger):
             })
 
     menu_buttons['rows'] = rows
-
     return menu_block, menu_buttons
+
 
 
 class SummonBlockApiView(APIView):
@@ -218,12 +218,36 @@ class SummonBlockApiView(APIView):
             return Response(result_data, status=200)
 
         elif 'create_special_menu_' in action:
-            """всякие хитрые блоки со списками"""
+            """всякие хитрые меню со списками"""
             self.logger.info(f'Creating special menu {action}')
             what_kind_of_special = action.replace('create_special_menu_', '')
             self.logger.info(f'Creating special menu {what_kind_of_special}')
-
             match what_kind_of_special:
+                case 'orders':
+                    self.logger.info(f'SPECIAL MENU CLIENTS ORDERS')
+                    result_data['what_next'] = 'create_menu_orders'
+                    client = Client.objects.filter(phone=user_phone).first()
+                    orders = client.orders.order_by('-id')[:5]
+
+                    if orders:
+                        buttons = orders_menu_buttons_generator(
+                            orders_title=replies_text(R.OrdersMenu.LIST_TITLE,language=language),
+                            orders=orders,
+                            language=language)
+                        result_data['what_next'] = 'create_menu_orders'
+                        result_data['menu'] = {
+                            "menu_block": {
+                                "header": replies_text(name=R.OrdersMenu.HEADER, language=language),
+                                "body": replies_text(name=R.OrdersMenu.BODY, language=language),
+                                "footer": replies_text(name=R.OrdersMenu.FOOTER, language=language),
+                                "list_title": replies_text(name=R.OrdersMenu.LIST_TITLE, language=language),
+                                "section_title": replies_text(name=R.OrdersMenu.SECTION_TITLE, language=language)
+                            },
+                            "menu_buttons": [buttons]
+                        }
+                    self.logger.info(f'response data: {result_data}')
+                    return Response(result_data, status=200)
+
                 case 'cart':
                     result_data['what_next'] = 'create_menu_cart'
                     client = Client.objects.filter(phone=user_phone).first()
@@ -247,6 +271,7 @@ class SummonBlockApiView(APIView):
                         },
                         "menu_buttons": [cart_buttons]
                     }
+                    self.logger.info(f'response data: {result_data}')
                     return Response(result_data, status=200)
 
         elif action == 'to_language_choice':
@@ -268,19 +293,22 @@ class SummonBlockApiView(APIView):
                 self.logger.error(f"parsing_variable not found")
                 pass
             try:
-                assert the_way in ['ask_address',
-                                   'catch_address',
-                                   'ask_payment_choice',
-                                   'catch_payment_choice',
-                                   'catch_time',
-                            'ask_about_container',
-                            'ask_about_delivery',
-                            'ask_about_payment',
-                            'product_quantity',
-                            'catch_product_quantity'], 'The way not found'
+                assert the_way in [
+                    'ask_address',
+                    'order_handler',
+                    'catch_order_handler',
+                    'catch_address',
+                    'ask_payment_choice',
+                    'catch_payment_choice',
+                    'catch_time',
+                    'ask_about_container',
+                    'ask_about_delivery',
+                    'ask_about_payment',
+                    'product_quantity',
+                    'catch_product_quantity'
+                ], 'The way not found'
             except:
                 return Response({'message': 'The way not found!'}, status=404)
-
             self.logger.info(f'Collecting data before order {the_way}')
             result = collect_data_before_order(
                                 the_way=the_way,
@@ -307,6 +335,7 @@ class SummonBlockApiView(APIView):
                 prefix = 'Здравствуйте, меня интересует информация по '
                 operator_header = Variables.objects.filter(name='operator_header').first().rus
                 operator_footer = Variables.objects.filter(name='operator_footer').first().rus
+
             elif language == 'kaz':
                 prefix = 'Сәлеметсіз бе, маған ақпарат керек'
                 info = infoblock.header_kaz
@@ -331,7 +360,6 @@ class SummonBlockApiView(APIView):
                 }
             }
             return Response(result_data, status=200)
-
         else:
             body = f'Action {action} not found!'
             return Response({'message': 'Action not found!',

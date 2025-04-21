@@ -1,7 +1,11 @@
+from typing import Tuple
+
 from api_backend.models import Variables
 
 
-def cart_buttons_generator(items,cart_summary,language):
+def cart_buttons_generator(items,
+                           cart_summary,
+                           language):
     required_variables = ('cart', 'submit_order', 'submit_order_description',
                           'clear_cart', 'clear_cart_description', 'comeback', 'comeback_description')
     items_count = len(items)
@@ -41,7 +45,7 @@ def cart_buttons_generator(items,cart_summary,language):
 
     if items_count == 0:
         base_buttons['rows'].append(comeback_button)
-    elif items_count <=7:
+    elif items_count <= 7:
 
         for item in items:
             item_dict = item.to_dict()
@@ -59,4 +63,34 @@ def cart_buttons_generator(items,cart_summary,language):
         base_buttons['rows'].append(clear_cart_button)
         base_buttons['rows'].append(comeback_button)
 
+    return base_buttons
+
+def orders_menu_buttons_generator(orders_title:str,orders,language)-> dict:
+    rows = []
+    required_variables = ('comeback', 'comeback_description')
+
+    variables = {var.name: var for var in Variables.objects.filter(name__in=required_variables)}
+    comeback = getattr(variables['comeback'], language)
+    comeback_description = getattr(variables['comeback_description'], language)
+    comeback_button = {'title': comeback,
+                       'value': 'create_menu_main',
+                       'description': comeback_description}
+
+    for num, order in enumerate(orders):
+        title = f"{order.id}|{order.created_at.date()}"
+        #FIXME
+        value = f"datacollector|order_handler|{order.id}"
+        description = f"{order.order_price}₸|{order.get_status(language=language)}."
+        description = description[:70]
+        rows.append(
+            {
+                'title': title,
+                'value': value,
+                'description': description
+            }
+        )
+
+    rows.append(comeback_button)
+    base_buttons = {'title': orders_title,
+                    'rows': rows}
     return base_buttons
