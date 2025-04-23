@@ -383,7 +383,7 @@ def collect_data_before_order(the_way,
                 )
             buttons.append(
                 {
-                    "title": "OK",
+                    "title": replies_text(R.Navigate.COMEBACK,language=language),
                     "value": "create_special_menu_orders"
                 }
             )
@@ -424,7 +424,7 @@ def collect_data_before_order(the_way,
                     },
                     "buttons": [
                         {
-                            "title": replies_text(R.Navigate.COMEBACK, language),
+                            "title": 'Ok',
                             "value": "create_special_menu_cart"
                         }
                     ]
@@ -474,8 +474,7 @@ def collect_data_before_order(the_way,
                     cart_item.quantity = count_of_product
                     cart_item.save()
 
-                result_data = {'product_name': product_name}
-                result_data['what_next'] = f'create_productblock_{product_name}'
+                result_data = {'product_name': product_name, 'what_next': f'create_productblock_{product_name}'}
                 is_success, comment_or_result = create_product_block_data(action=result_data['what_next'],
                                               language=language,
                                               user_phone=user_phone,
@@ -485,16 +484,3 @@ def collect_data_before_order(the_way,
                 else:
                     my_logger.error(f'Product not found {product_name} {comment_or_result}')
     return result
-
-
-
-
-
-
-
-
-
-
-
-
-

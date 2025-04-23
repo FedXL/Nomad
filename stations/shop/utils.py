@@ -77,7 +77,7 @@ def orders_menu_buttons_generator(orders_title:str,orders,language)-> dict:
                        'description': comeback_description}
 
     for num, order in enumerate(orders):
-        title = f"{order.id}|{order.created_at.date()}"
+        title = f"№{order.id} - {order.created_at.date()}"
         #FIXME
         value = f"datacollector|order_handler|{order.id}"
         description = f"{order.order_price}₸|{order.get_status(language=language)}."
